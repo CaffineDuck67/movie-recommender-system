@@ -1,7 +1,12 @@
+import os
 import pickle
 import streamlit as st
 import pandas as pd
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # ----------------------------
 # Load data (ONLY ONCE)
@@ -10,11 +15,20 @@ movies = pickle.load(open('movie_list.pkl', 'rb'))
 similarity = pickle.load(open('similarity.pkl', 'rb'))
 
 # ----------------------------
+# Get TMDB API Key from environment
+# ----------------------------
+TMDB_API_KEY = os.getenv('TMDB_API_KEY')
+
+if not TMDB_API_KEY:
+    st.error("❌ TMDB API Key not found! Please set the TMDB_API_KEY environment variable in your .env file.")
+    st.stop()
+
+# ----------------------------
 # Fetch poster from TMDB
 # ----------------------------
 def fetch_poster(movie_id):
     try:
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US"
+        url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}&language=en-US"
         response = requests.get(url)
         data = response.json()
 
@@ -24,7 +38,8 @@ def fetch_poster(movie_id):
 
         return "https://image.tmdb.org/t/p/w500/" + poster_path
 
-    except:
+    except requests.RequestException as e:
+        st.warning(f"Failed to fetch poster: {str(e)}")
         return "https://via.placeholder.com/500x750?text=Error"
 
 # ----------------------------
@@ -52,10 +67,11 @@ def recommend(movie):
         recommended_movie_posters.append(fetch_poster(movie_id))
 
     return recommended_movie_names, recommended_movie_posters
+
 # ----------------------------
 # Streamlit UI
 # ----------------------------
-st.header('Movie Recommender System')
+st.header('🎬 Movie Recommender System')
 
 movie_list = movies['title'].values
 selected_movie = st.selectbox(
