@@ -1,151 +1,117 @@
-# 🎬 Movie Recommender System
+# 🎬 CineMatch — Movie Recommender System
 
-A simple machine learning-based movie recommendation system built using **Streamlit** and **Cosine Similarity**. It suggests movies similar to the one selected by the user and displays their poster images.
+A content-based movie recommendation system that suggests 5 similar movies based on your selection, complete with posters fetched live from the TMDB API.
 
 ---
 
-## 🚀 Features
-- Content-based movie recommendations using cosine similarity
-- Clean and intuitive Streamlit UI
-- Fetch movie posters dynamically using TMDB API
-- Fast inference with precomputed similarity matrix
-- Graceful error handling with fallback images
+## ✨ Features
+
+- Content-based filtering using **Cosine Similarity**
+- **FastAPI** backend with auto-generated `/docs` (Swagger UI)
+- Poster fetching via **TMDB API** with `lru_cache` to avoid repeat calls
+- Clean Netflix-style dark UI with skeleton loading, hover effects, and chained recommendations
+- Responsive grid — works on mobile too
 
 ---
 
 ## 🛠️ Tech Stack
-- **Python** — Core language
-- **Pandas** — Data manipulation
-- **Scikit-learn** — Similarity calculations (cosine similarity)
-- **Streamlit** — Web UI framework
-- **Requests** — HTTP requests for TMDB API
-- **python-dotenv** — Environment variable management
 
----
-
-## 📋 Prerequisites
-- Python 3.8 or higher
-- TMDB API Key (get one free at [https://www.themoviedb.org/settings/api](https://www.themoviedb.org/settings/api))
-
----
-
-## ⚙️ Installation & Setup
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/CaffineDuck67/movie-recommender-system.git
-cd movie-recommender-system
-```
-
-### 2. Create a virtual environment (recommended)
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-### 3. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Set up environment variables
-Create a `.env` file in the project root and add your TMDB API key:
-```
-TMDB_API_KEY=your_api_key_here
-```
-
-You can use `.env.example` as a template:
-```bash
-cp .env.example .env
-```
-
-### 5. Run the application
-```bash
-streamlit run app.py
-```
-
-The app will open in your browser at `http://localhost:8501`
-
----
-
-## 🎯 How to Use
-1. Open the application in your browser
-2. Select a movie from the dropdown menu
-3. Click the "Show Recommendation" button
-4. View 5 similar movies with their posters
+| Layer      | Technology                        |
+|------------|-----------------------------------|
+| Backend    | FastAPI, Uvicorn                  |
+| ML         | Scikit-learn (Cosine Similarity)  |
+| Data       | Pandas, NumPy                     |
+| Frontend   | HTML, CSS, Vanilla JS             |
+| Poster API | TMDB API                          |
 
 ---
 
 ## 📁 Project Structure
+movie_recommnder/
+
+│
+
+├── model/
+
+│   ├── app.py                      # FastAPI backend
+
+│   ├── fast.py                     # (notebook exports)
+
+│   ├── frontend.html               # Frontend UI
+
+│   ├── movie_list.pkl              # Preprocessed movie data
+
+│   ├── similarity.pkl              # Cosine similarity matrix
+
+│   ├── vectorizer.pkl              # TF-IDF vectorizer
+
+│   ├── recommandation-system.ipynb # Training notebook
+
+│   ├── tmdb_5000_movies.csv        # Raw dataset
+
+│   └── tmdb_5000_credits.csv       # Raw dataset
+
+│
+
+└── README.md
+
+---
+
+## ▶️ How to Run
+
+**1. Install dependencies**
+```bash
+pip install fastapi uvicorn requests numpy pandas
 ```
-movie-recommender-system/
-├── app.py                           # Main Streamlit application
-├── recommandation-system.ipynb      # Jupyter notebook with ML model training
-├── requirements.txt                 # Python dependencies
-├── .env.example                     # Environment variables template
-├── movie_list.pkl                   # Pickled movie dataset (generated)
-├── similarity.pkl                   # Precomputed similarity matrix (generated)
-└── README.MD                        # This file
+
+**2. Start the API**
+```bash
+cd model
+uvicorn app:app --reload
 ```
 
----
+**3. Open the frontend**
 
-## 🔒 Security Notes
-- **Never commit your `.env` file** with actual API keys to version control
-- The `.env` file is listed in `.gitignore` for safety
-- Your TMDB API key is loaded securely from environment variables
-- For Streamlit Cloud deployment, add secrets in the Streamlit dashboard instead of `.env`
+Just open `frontend.html` directly in your browser — no extra server needed.
 
----
+**4. Verify the API is working**
+http://localhost:8000/health   → API status
 
-## 🚀 Deployment
+http://localhost:8000/movies   → All movies list
 
-### Deploy to Streamlit Cloud
-1. Push your code to GitHub
-2. Go to [https://share.streamlit.io](https://share.streamlit.io)
-3. Connect your repository and select this branch
-4. In the Streamlit Cloud dashboard, add your TMDB API key under **Secrets**
+http://localhost:8000/docs     → Swagger UI (test endpoints here)
 
 ---
 
-## 📊 Model Details
-- **Algorithm**: Cosine Similarity on content features
-- **Data Source**: Movie dataset with various features (genres, keywords, overview, etc.)
-- **Features Used**: Genres, keywords, cast, crew, and overview (preprocessed and vectorized)
-- **Training**: See `recommandation-system.ipynb` for the complete ML pipeline
+## 🔌 API Endpoints
+
+| Method | Endpoint                  | Description                        |
+|--------|---------------------------|------------------------------------|
+| GET    | `/health`                 | Health check                       |
+| GET    | `/movies`                 | List all available movies          |
+| GET    | `/recommend/{movie_name}` | Get 5 recommendations for a movie  |
+| GET    | `/recommend/{movie_name}?n=10` | Get custom number of results  |
 
 ---
 
-## 🐛 Troubleshooting
+## 📊 How It Works
 
-**Issue**: `ModuleNotFoundError: No module named 'streamlit'`
-- Solution: Run `pip install -r requirements.txt`
-
-**Issue**: `KeyError: movie_list.pkl not found`
-- Solution: Ensure you're running the app from the project root directory
-
-**Issue**: Posters not loading (showing placeholder images)
-- Solution: Check your TMDB API key is valid and your internet connection is working
-
-**Issue**: `.env` file not being read
-- Solution: Ensure the file is in the project root and named exactly `.env`
+1. Movie metadata (genres, cast, crew, keywords) is combined into a single **tags** column
+2. **TF-IDF Vectorization** converts tags into numerical vectors
+3. **Cosine Similarity** measures how close two movies are in vector space
+4. Top 5 most similar movies (excluding itself) are returned
+5. Posters are fetched live from the **TMDB API**
 
 ---
 
-## 📝 License
-This project is open source and available under the MIT License.
+## 📸 Demo
+
+> Search any movie → get 5 recommendations with posters instantly.
+> Click any recommended movie card to chain recommendations.
 
 ---
 
-## 🤝 Contributing
-Contributions are welcome! Feel free to open issues or submit pull requests.
+## 🔑 TMDB API
 
----
-
-## 👤 Author
-**CaffineDuck67** — [GitHub Profile](https://github.com/CaffineDuck67)
-
----
-
-## ⭐ Show your support
-If you found this helpful, please give it a star!
+This project uses the [TMDB API](https://www.themoviedb.org/documentation/api) to fetch movie posters.
+Get your free API key at [themoviedb.org](https://www.themoviedb.org/settings/api).
